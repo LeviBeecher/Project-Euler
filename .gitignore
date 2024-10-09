@@ -1,1 +1,4 @@
 *.exe
+/199/IterativeCirclePacking/.vs
+/199/IterativeCirclePacking/Debug
+199/IterativeCirclePacking/IterativeCirclePacking.vcxproj.user

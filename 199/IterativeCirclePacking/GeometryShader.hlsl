@@ -21,7 +21,7 @@ void main(point GS_In input[1], inout TriangleStream<GS_Out> OutputStream)
     output.colorOut.w = input[0].scaleIn.x;
     
     output.posOut = input[0].posIn + float4(-input[0].scaleIn.x, input[0].scaleIn.y, 0, 1);
-    output.uvOut = float4(0, 1, 0, 0);
+    output.uvOut = float4(-1, 1, 0, 0);
     OutputStream.Append(output);
     
     output.posOut = input[0].posIn + float4(input[0].scaleIn.x, input[0].scaleIn.y, 0, 1);
@@ -29,10 +29,10 @@ void main(point GS_In input[1], inout TriangleStream<GS_Out> OutputStream)
     OutputStream.Append(output);
     
     output.posOut = input[0].posIn + float4(-input[0].scaleIn.x, -input[0].scaleIn.y, 0, 1);
-    output.uvOut = float4(0, 0, 0, 0);
+    output.uvOut = float4(-1, -1, 0, 0);
     OutputStream.Append(output);
     
     output.posOut = input[0].posIn + float4(input[0].scaleIn.x, -input[0].scaleIn.y, 0, 1);
-    output.uvOut = float4(1, 0, 0, 0);
+    output.uvOut = float4(1, -1, 0, 0);
     OutputStream.Append(output);
 }

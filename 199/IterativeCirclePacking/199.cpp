@@ -26,14 +26,44 @@ ID3D11RasterizerState* gp_rasterizerState = nullptr;
 ID3D11RenderTargetView* gp_RTV = nullptr;
 
 const float PI = 3.1415926f;
+const double D_PI = 3.1415926535897932384626433832795;
+
+struct Double4
+{
+	double x = 0;
+	double y = 0;
+	double z = 0;
+	double w = 0;
+
+	operator DirectX::XMFLOAT4() const
+	{
+		return DirectX::XMFLOAT4(
+			static_cast<double>(x),
+			static_cast<double>(y),
+			static_cast<double>(z),
+			static_cast<double>(w)
+		);
+	}
+
+	Double4(double _x, double _y, double _z, double _w) : x(_x), y(_y), z(_z), w(_w) {}
+};
 
 struct Circle
+{
+	Double4 position;
+	Double4 scale;
+	DirectX::XMFLOAT4 color;
+
+	Circle(double x, double y, double r, DirectX::XMFLOAT4 c) : position(x, y, 0, 1), scale(r, r, 0, 1), color(c) {}
+};
+
+struct DXCircle
 {
 	DirectX::XMFLOAT4 position;
 	DirectX::XMFLOAT4 scale;
 	DirectX::XMFLOAT4 color;
 
-	Circle(float x, float y, float r, DirectX::XMFLOAT4 c) : position(x, y, 0, 1), scale(r, r, 0, 1), color(c) {}
+	DXCircle(Circle const& c) : position(c.position), scale(DirectX::XMFLOAT4(c.scale)), color(c.color) {}
 };
 
 std::vector<Circle> circles;
@@ -85,15 +115,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-bool CircleCircleCheck(std::complex<float> const& z1, std::complex<float> const& z2, float k1, float k2)
-{
-	float r1 = 0.01f + 1 / k1;
-	float r2 = 0.01f + 1 / k2;
-	float sqrDist = (z2.real() - z1.real()) * (z2.real() - z1.real()) + (z2.imag() - z1.imag()) * (z2.imag() - z1.imag());
-	float sqrRad = (r1 + r2) * (r1 + r2);
-	return sqrDist <= sqrRad;
-}
-
 int power(int n, int p)
 {
 	int res = 1;
@@ -111,14 +132,14 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	const int iterationCount = 10;
 
 	// Initial circles
-	float r2 = 2;
-	float r1 = (3 * r2) / (3 + 2 * sqrtf(3));
-	float d = (2 * r1 * sqrtf(3)) / 3.f;
+	double r2 = 2;
+	double r1 = (3 * r2) / (3 + 2 * sqrt(3));
+	double d = (2 * r1 * sqrt(3)) / 3.;
 
 	circles.emplace_back(Circle(0, 0, r2, DirectX::XMFLOAT4(1, 1, 1, 1)));
 	circles.emplace_back(Circle(0, d, r1, DirectX::XMFLOAT4(0, 0, 1, 1)));
-	circles.emplace_back(Circle(-sinf(2 * PI / 3) * d, cosf(2 * PI / 3) * d, r1, DirectX::XMFLOAT4(0, 0, 1, 1)));
-	circles.emplace_back(Circle(-sinf(4 * PI / 3) * d, cosf(4 * PI / 3) * d, r1, DirectX::XMFLOAT4(0, 0, 1, 1)));
+	circles.emplace_back(Circle(-sin(2 * D_PI / 3) * d, cos(2 * D_PI / 3) * d, r1, DirectX::XMFLOAT4(0, 0, 1, 1)));
+	circles.emplace_back(Circle(-sin(4 * D_PI / 3) * d, cos(4 * D_PI / 3) * d, r1, DirectX::XMFLOAT4(0, 0, 1, 1)));
 
 	std::queue<std::pair<int, std::pair<int, int>>> circleQueue;
 
@@ -138,25 +159,25 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			circleQueue.pop();
 
 			bool outside = task.first == 0;
-			float k1 = ((outside ? -1 : 1) / circles[task.first].scale.x);
-			float k2 = 1 / circles[task.second.first].scale.x;
-			float k3 = 1 / circles[task.second.second].scale.x;
-			float k4 = std::max(k1 + k2 + k3 + 2 * sqrtf(k1 * k2 + k2 * k3 + k3 * k1), k1 + k2 + k3 - 2 * sqrtf(k1 * k2 + k2 * k3 + k3 * k1));
+			double k1 = ((outside ? -1. : 1.) / circles[task.first].scale.x);
+			double k2 = 1. / circles[task.second.first].scale.x;
+			double k3 = 1. / circles[task.second.second].scale.x;
+			double k4 = std::max(k1 + k2 + k3 + 2 * sqrt(k1 * k2 + k2 * k3 + k3 * k1), k1 + k2 + k3 - 2 * sqrt(k1 * k2 + k2 * k3 + k3 * k1));
 
-			std::complex<float> z1(circles[task.first].position.x, circles[task.first].position.y);
-			std::complex<float> z2(circles[task.second.first].position.x, circles[task.second.first].position.y);
-			std::complex<float> z3(circles[task.second.second].position.x, circles[task.second.second].position.y);
+			std::complex<double> z1(circles[task.first].position.x, circles[task.first].position.y);
+			std::complex<double> z2(circles[task.second.first].position.x, circles[task.second.first].position.y);
+			std::complex<double> z3(circles[task.second.second].position.x, circles[task.second.second].position.y);
 
 			// Calculate both possible circle locations
-			std::complex<float> z4_1 = (z1 * k1 + z2 * k2 + z3 * k3 + 2.f * std::sqrt(k1 * k2 * z1 * z2 + k2 * k3 * z2 * z3 + k1 * k3 * z1 * z3)) / k4;
-			std::complex<float> z4_2 = (z1 * k1 + z2 * k2 + z3 * k3 - 2.f * std::sqrt(k1 * k2 * z1 * z2 + k2 * k3 * z2 * z3 + k1 * k3 * z1 * z3)) / k4;
+			std::complex<double> z4_1 = (z1 * k1 + z2 * k2 + z3 * k3 + 2. * std::sqrt(k1 * k2 * z1 * z2 + k2 * k3 * z2 * z3 + k1 * k3 * z1 * z3)) / k4;
+			std::complex<double> z4_2 = (z1 * k1 + z2 * k2 + z3 * k3 - 2. * std::sqrt(k1 * k2 * z1 * z2 + k2 * k3 * z2 * z3 + k1 * k3 * z1 * z3)) / k4;
 
-			float sqrLen1 = z4_1.real() * z4_1.real() + z4_1.imag() * z4_1.imag();
-			float sqrLen2 = z4_2.real() * z4_2.real() + z4_2.imag() * z4_2.imag();
+			double sqrLen1 = z4_1.real() * z4_1.real() + z4_1.imag() * z4_1.imag();
+			double sqrLen2 = z4_2.real() * z4_2.real() + z4_2.imag() * z4_2.imag();
 
-			std::complex<float> z4 = sqrLen1 > sqrLen2 ? z4_1 : z4_2;
+			std::complex<double> z4 = sqrLen1 > sqrLen2 ? z4_1 : z4_2;
 
-			circles.emplace_back(Circle(z4.real(), z4.imag(), 1 / k4, DirectX::XMFLOAT4(iter * 0.35f * (iter % 3 == 0), iter * 0.35f * ((iter + 1) % 3 == 0), iter * 0.35f * ((iter + 2) % 3 == 0), 1)));
+			circles.emplace_back(Circle(z4.real(), z4.imag(), 1. / k4, DirectX::XMFLOAT4(iter * 0.35f * (iter % 3 == 0), iter * 0.35f * ((iter + 1) % 3 == 0), iter * 0.35f * ((iter + 2) % 3 == 0), 1)));
 
 			int newCircleIndex = circles.size() - 1;
 
@@ -167,16 +188,19 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		}
 	}
 
-	float circleArea = PI * (circles[0].scale.x * circles[0].scale.x);
-	float areaSum = 0;
+	double circleArea = D_PI * (circles[0].scale.x * circles[0].scale.x);
+	double areaSum = 0;
 	for (int i = 1; i < circles.size(); ++i)
 	{
-		areaSum += PI * (circles[i].scale.x * circles[i].scale.x);
+		areaSum += D_PI * (circles[i].scale.x * circles[i].scale.x);
 	}
 
 	// Inaccurate due to floating point error...
-	float uncovered = circleArea - areaSum;
-	float fraction = uncovered / circleArea;
+	double uncovered = circleArea - areaSum;
+	double fraction = uncovered / circleArea;
+
+	std::vector<DXCircle> dxcircles;
+	for (Circle const& c : circles) dxcircles.emplace_back(DXCircle(c));
 
 #pragma endregion
 #pragma region WINAPI_INIT
@@ -449,7 +473,7 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		ZeroMemory(&vbDesc, sizeof(D3D11_BUFFER_DESC));
 
 		// Fill out vertex buffer description
-		vbDesc.ByteWidth = static_cast<UINT>(sizeof(Circle) * circles.size());
+		vbDesc.ByteWidth = static_cast<UINT>(sizeof(DXCircle) * dxcircles.size());
 		vbDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
 		vbDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
 		vbDesc.CPUAccessFlags = 0;
@@ -457,7 +481,7 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		// Create buffer data
 		D3D11_SUBRESOURCE_DATA vbInitData = {};
 		ZeroMemory(&vbInitData, sizeof(D3D11_SUBRESOURCE_DATA));
-		vbInitData.pSysMem = circles.data();
+		vbInitData.pSysMem = dxcircles.data();
 
 		ID3D11Buffer* vertexBuffer = nullptr;
 
@@ -466,7 +490,7 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		assert(!FAILED(hr));
 
 		// Draw circles
-		UINT stride = sizeof(Circle);
+		UINT stride = sizeof(DXCircle);
 		UINT offset = 0;
 		gp_deviceContext->OMSetRenderTargets(1, &gp_RTV, nullptr);
 		gp_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);

@@ -7,9 +7,10 @@ struct PS_Out
 
 float4 main(PS_Out pin) : SV_TARGET
 {
-    float2 adjUV = (pin.uvIn * 2) - 1;
+    // Thanks stashio
+    //float2 adjUV = (pin.uvIn * 2) - 1;
     
-    float sqrDist = adjUV.x * adjUV.x + adjUV.y * adjUV.y;
+    float sqrDist = pin.uvIn.x * pin.uvIn.x + pin.uvIn.y * pin.uvIn.y;
     if (sqrDist > 1)
         discard;
     
